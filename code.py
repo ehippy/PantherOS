@@ -118,33 +118,11 @@ mic = audiobusio.PDMIn(
 samples = array.array('H', [0] * 160)
 
 
-def stealth_mode():
-    mic.record(samples, len(samples))
-    magnitude = normalized_rms(samples)
-    # print("mic mag: ", magnitude)
-
-    mic_top_end = 300.0
-    
-    for i in range(10):
-        color = OFF
-        if ((magnitude/mic_top_end) > (i/10)):
-            color = PURPLE
-        pixelLoop[i] = color
-
-    for i in range(30):
-        color = OFF
-        if ((magnitude/mic_top_end) > (i/30)):
-            color = PURPLE
-
-        for strip in pixelStrips:
-            strip[i] = color
-
-    pixelLoop.show()
-    for strip in pixelStrips:
-        strip.show()
-
 
 def battle_mode():
+
+
+    # PURPLE = (180, 0, 255)
 
     heartbeat()
     pixelLoop.fill(PURPLE)
@@ -153,16 +131,45 @@ def battle_mode():
 
     for strip in pixelStrips:
         for i in range(strip.n):
-            if random.randrange(10) > 2:
-                strip[i] = PURPLE
-            else:
-                strip[i] = OFF
+            rand_amt = random.random()
+            strip[i] = (int(45.0 * rand_amt), 0, int(64.0 * rand_amt))
+
+        strip.show()
+
+
+
+def stealth_mode():
+    pixelLoop.brightness = 0.01
+    mic.record(samples, len(samples))
+    magnitude = normalized_rms(samples)
+    print("mic mag: ", magnitude)
+
+    mic_bottom_end = 40.0
+    mic_top_end = 300.0
+    
+    for i in range(10):
+        color = OFF
+        if (((magnitude - mic_bottom_end) / mic_top_end) > (i/10)):
+            color = PURPLE
+        pixelLoop[i] = color
+
+    for i in range(30):
+        color = OFF
+        if ((((magnitude - mic_bottom_end) / mic_top_end)) > (i/30)):
+            color = PURPLE
+
+        for strip in pixelStrips:
+            strip[i] = color
+
+    pixelLoop.show()
+    for strip in pixelStrips:
+        strip.brightness = 0.01
         strip.show()
 
 
 rage_amt = 0.0
 rage_max = pixel_brightness
-rage_step = 0.05
+rage_step = 0.02
 rage_dir = rage_step
 
 def heartbeat():
@@ -172,7 +179,7 @@ def heartbeat():
         rage_dir = -1 * rage_dir
     
     rage_amt += rage_dir
-    print("Rage Amt", rage_amt)
+
 
 def rage_mode():
     heartbeat()
@@ -185,6 +192,7 @@ def rage_mode():
         strip.fill(RED)
         strip.brightness = rage_amt
         strip.show()
+
 
 def rainbow_party():
     
@@ -214,7 +222,7 @@ while True:
         pixelLoop.brightness = pixel_brightness
         for strip in pixelStrips:
             strip.brightness = pixel_brightness
-            
+
         if panther_mode > 4:
             panther_mode = 1
         time.sleep(0.25)

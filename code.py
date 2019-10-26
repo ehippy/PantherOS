@@ -18,6 +18,13 @@ print("Welcome to PatherOS")
 button = digitalio.DigitalInOut(board.BUTTON_A)
 button.switch_to_input(pull=digitalio.Pull.DOWN)
 
+button_b = digitalio.DigitalInOut(board.BUTTON_B)
+button_b.switch_to_input(pull=digitalio.Pull.DOWN)
+
+switch = digitalio.DigitalInOut(board.SLIDE_SWITCH)
+switch.direction = digitalio.Direction.INPUT
+switch.pull = digitalio.Pull.UP
+
 led = digitalio.DigitalInOut(board.D13)
 led.direction = digitalio.Direction.OUTPUT
 
@@ -30,12 +37,14 @@ PURPLE = (180, 0, 255)
 WHITE = (255, 255, 255)
 OFF = (0, 0, 0)
 
-pixel_brightness = 0.3 # don't go too high, it will die.
+pixel_brightness = 0.7 # don't go too high, it will die.
 
 pixelLoop = neopixel.NeoPixel(board.NEOPIXEL, 10, brightness=pixel_brightness, auto_write=False)
 
 pixelStrips = [
     neopixel.NeoPixel(board.A1, 30, brightness=pixel_brightness, auto_write=False),
+    neopixel.NeoPixel(board.A2, 30, brightness=pixel_brightness, auto_write=False),
+    neopixel.NeoPixel(board.A6, 30, brightness=pixel_brightness, auto_write=False),
     neopixel.NeoPixel(board.A7, 30, brightness=pixel_brightness, auto_write=False)
 ]
 
@@ -139,14 +148,19 @@ def battle_mode():
 
 
 def stealth_mode():
-    pixelLoop.brightness = 0.01
     mic.record(samples, len(samples))
     magnitude = normalized_rms(samples)
-    print("mic mag: ", magnitude)
+    # print("mic mag: ", magnitude) 
 
     mic_bottom_end = 40.0
     mic_top_end = 300.0
     
+    awesomeness = ((magnitude - mic_bottom_end) / mic_top_end)
+    if awesomeness > 1.0:
+        awesomeness = 1.0
+
+    print("awesomeness: ", awesomeness)
+
     for i in range(10):
         color = OFF
         if (((magnitude - mic_bottom_end) / mic_top_end) > (i/10)):
@@ -161,15 +175,16 @@ def stealth_mode():
         for strip in pixelStrips:
             strip[i] = color
 
+    pixelLoop.brightness = awesomeness
     pixelLoop.show()
     for strip in pixelStrips:
-        strip.brightness = 0.01
+        strip.brightness = awesomeness
         strip.show()
 
 
 rage_amt = 0.0
 rage_max = pixel_brightness
-rage_step = 0.02
+rage_step = 0.1
 rage_dir = rage_step
 
 def heartbeat():
@@ -194,6 +209,18 @@ def rage_mode():
         strip.show()
 
 
+def sleep_mode():
+
+    pixelLoop.fill(OFF)
+    pixelLoop.brightness = 0.1
+    pixelLoop.show()
+
+    for strip in pixelStrips:
+        strip.fill(OFF)
+        strip.brightness = 0.1
+        strip.show()
+
+
 def rainbow_party():
     
     j = random.randrange(255)
@@ -202,20 +229,26 @@ def rainbow_party():
         pixelLoop[i] = wheel(rc_index & 255)
     pixelLoop.show()
 
-    for i in range(30):
-        rc_index = (i * 256 // 10) + j * 5
-        pixelStrips[0][i] = wheel(rc_index & 255)
-        pixelStrips[1][i] = wheel(rc_index & 255)
-    pixelStrips[0].show()
-    pixelStrips[1].show()
+
+    for strip in pixelStrips:
+        j = random.randrange(255)
+        for i in range(30):
+            rc_index = (i * 256 // 10) + j * 5
+            strip[i] = wheel(rc_index & 255)
+        
+        strip.show()
 
 
 
-panther_mode = 1
+panther_mode = 2
 
 while True:
 
-    if button.value:
+    while switch.value:
+        sleep_mode()
+
+
+    if button.value or button_b.value:
         panther_mode = panther_mode + 1
         print("CHANGING PANTHER MODE", panther_mode)
 
